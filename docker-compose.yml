@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+
+  app:
+    build: .
+    container_name: flask_app
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - INDEX_NAME=document_index
+      - DATA_PATH=/app/documents
+      - CHUNK_SIZE=512
+      - CHUNK_OVERLAP=30
+      - EMBEDDINGS_MODEL=sentence-transformers/all-mpnet-base-v2
+      - NUM_RESULTS=3
+    networks:
+      - elastic
+
+volumes:
+  esdata:
+    driver: local
+
+networks:
+  elastic:
+    driver: bridge
